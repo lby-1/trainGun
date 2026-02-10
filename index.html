@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrainGun - 网页练枪训练器</title>
+    <meta name="description" content="TrainGun - 类似KovaaKs的网页FPS练枪训练器，支持追踪、点击、切换、闪现四大训练模式">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <!-- 动态背景层 -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div id="app">
+        <!-- ==================== 主菜单视图 ==================== -->
+        <div id="view-menu" class="view active">
+            <div class="menu-container">
+                <div class="logo-container">
+                    <h1 class="logo" id="main-logo">TRAINGÜN</h1>
+                    <p class="subtitle">网页 FPS 练枪训练器</p>
+                    <div class="logo-line"></div>
+                </div>
+
+                <div class="mode-grid" id="mode-grid">
+                    <div class="mode-card" data-mode="tracking" id="card-tracking">
+                        <div class="card-glow"></div>
+                        <div class="card-content">
+                            <span class="mode-icon">🔴</span>
+                            <h3 class="mode-title">追踪训练</h3>
+                            <p class="mode-desc">持续瞄准移动目标，锻炼控枪稳定性</p>
+                            <span class="mode-tag">TRACKING</span>
+                        </div>
+                    </div>
+
+                    <div class="mode-card" data-mode="flicking" id="card-flicking">
+                        <div class="card-glow"></div>
+                        <div class="card-content">
+                            <span class="mode-icon">🎯</span>
+                            <h3 class="mode-title">点击训练</h3>
+                            <p class="mode-desc">快速甩枪精准点击，提升反应与精度</p>
+                            <span class="mode-tag">FLICKING</span>
+                        </div>
+                    </div>
+
+                    <div class="mode-card" data-mode="switching" id="card-switching">
+                        <div class="card-glow"></div>
+                        <div class="card-content">
+                            <span class="mode-icon">💥</span>
+                            <h3 class="mode-title">切换训练</h3>
+                            <p class="mode-desc">多目标快速切换，锻炼大范围转移</p>
+                            <span class="mode-tag">SWITCHING</span>
+                        </div>
+                    </div>
+
+                    <div class="mode-card" data-mode="reflex" id="card-reflex">
+                        <div class="card-glow"></div>
+                        <div class="card-content">
+                            <span class="mode-icon">🏃</span>
+                            <h3 class="mode-title">闪现训练</h3>
+                            <p class="mode-desc">极限反应速度挑战，突破生理极限</p>
+                            <span class="mode-tag">REFLEX</span>
+                        </div>
+                    </div>
+
+                    <div class="mode-card" data-mode="sixtarget" id="card-sixtarget">
+                        <div class="card-glow"></div>
+                        <div class="card-content">
+                            <span class="mode-icon">🔵</span>
+                            <h3 class="mode-title">六目标模式</h3>
+                            <p class="mode-desc">6个球体同时出现，考验快速清场</p>
+                            <span class="mode-tag">SIX TARGET</span>
+                        </div>
+                    </div>
+
+                    <div class="mode-card" data-mode="humanoid" id="card-humanoid">
+                        <div class="card-glow"></div>
+                        <div class="card-content">
+                            <span class="mode-icon">🧑</span>
+                            <h3 class="mode-title">小人模式</h3>
+                            <p class="mode-desc">爆头一击致命，身体需要多发子弹</p>
+                            <span class="mode-tag">HUMANOID</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="footer-btns">
+                    <button class="btn btn-settings" id="btn-settings">
+                        <span class="btn-icon">⚙️</span>
+                        <span>灵敏度设置</span>
+                    </button>
+                    <button class="btn btn-customize" id="btn-customize">
+                        <span class="btn-icon">🎨</span>
+                        <span>自定义设置</span>
+                    </button>
+                    <button class="btn btn-stats" id="btn-stats">
+                        <span class="btn-icon">📊</span>
+                        <span>训练统计</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 自定义设置视图 ==================== -->
+        <div id="view-customize" class="view">
+            <div class="panel-container">
+                <div class="panel-header">
+                    <button class="btn btn-back" data-target="menu">← 返回</button>
+                    <h2 class="panel-title">自定义设置</h2>
+                </div>
+                <div class="panel-body" id="customize-content">
+                    <p class="placeholder-text">加载中...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 灵敏度设置视图 ==================== -->
+        <div id="view-sensitivity" class="view">
+            <div class="panel-container">
+                <div class="panel-header">
+                    <button class="btn btn-back" data-target="menu">← 返回</button>
+                    <h2 class="panel-title">灵敏度设置</h2>
+                </div>
+                <div class="panel-body" id="sensitivity-content">
+                    <p class="placeholder-text">灵敏度设置功能即将开放...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 训练场景视图 ==================== -->
+        <div id="view-training" class="view">
+            <canvas id="game-canvas"></canvas>
+            <div id="hud" class="hud">
+                <div class="hud-top-left">
+                    <div class="hud-item">
+                        <span class="hud-label">SCORE</span>
+                        <span class="hud-value" id="hud-score">0</span>
+                    </div>
+                </div>
+                <div class="hud-top-center">
+                    <span class="hud-timer" id="hud-timer">60</span>
+                </div>
+                <div class="hud-top-right">
+                    <div class="hud-item">
+                        <span class="hud-label">ACCURACY</span>
+                        <span class="hud-value" id="hud-accuracy">100%</span>
+                    </div>
+                </div>
+                <div class="hud-bottom">
+                    <div class="hud-item">
+                        <span class="hud-label">COMBO</span>
+                        <span class="hud-value" id="hud-combo">0x</span>
+                    </div>
+                </div>
+            </div>
+            <div class="training-overlay" id="training-overlay">
+                <div class="overlay-content">
+                    <h2 class="overlay-title" id="overlay-title">准备开始</h2>
+                    <p class="overlay-text" id="overlay-text">点击画面开始训练</p>
+                    <button class="btn btn-back" data-target="menu" id="btn-exit-training">退出训练</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 统计面板视图 ==================== -->
+        <div id="view-stats" class="view">
+            <div class="panel-container">
+                <div class="panel-header">
+                    <button class="btn btn-back" data-target="menu">← 返回</button>
+                    <h2 class="panel-title">训练统计</h2>
+                </div>
+                <div class="panel-body" id="stats-content">
+                    <p class="placeholder-text">训练统计功能即将开放...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 难度选择弹窗 ==================== -->
+        <div id="difficulty-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-content">
+                <h2 class="modal-title">选择难度</h2>
+                <p class="modal-subtitle" id="modal-mode-name"></p>
+                <div class="difficulty-options">
+                    <button class="btn-difficulty" data-difficulty="easy" id="diff-easy">
+                        <span class="diff-icon">🟢</span>
+                        <span class="diff-name">简单</span>
+                        <span class="diff-desc">大目标 · 慢速</span>
+                    </button>
+                    <button class="btn-difficulty" data-difficulty="medium" id="diff-medium">
+                        <span class="diff-icon">🟡</span>
+                        <span class="diff-name">普通</span>
+                        <span class="diff-desc">中目标 · 中速</span>
+                    </button>
+                    <button class="btn-difficulty" data-difficulty="hard" id="diff-hard">
+                        <span class="diff-icon">🔴</span>
+                        <span class="diff-name">困难</span>
+                        <span class="diff-desc">小目标 · 高速</span>
+                    </button>
+                </div>
+                <button class="btn btn-back" id="btn-close-modal">取消</button>
+            </div>
+        </div>
+
+        <!-- ==================== 通知容器 ==================== -->
+        <div id="notification-container" class="notification-container"></div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>

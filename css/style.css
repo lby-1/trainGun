@@ -1,0 +1,1103 @@
+/* ============================================================
+   TrainGun - 赛博朋克暗黑风主题
+   ============================================================ */
+
+/* ---------- CSS 变量 (Design Tokens) ---------- */
+:root {
+    --primary: #00fff0;
+    --primary-rgb: 0, 255, 240;
+    --secondary: #ff00ff;
+    --secondary-rgb: 255, 0, 255;
+    --accent: #ff6b35;
+    --accent-rgb: 255, 107, 53;
+    --bg: #0a0a1a;
+    --bg-card: rgba(18, 18, 42, 0.75);
+    --bg-panel: rgba(12, 12, 30, 0.92);
+    --text: #e0e0f0;
+    --text-dim: #7a7a9a;
+    --text-bright: #ffffff;
+    --success: #00ff88;
+    --danger: #ff3366;
+    --warning: #ffaa00;
+
+    --glow-sm: 0 0 5px;
+    --glow-md: 0 0 15px;
+    --glow-lg: 0 0 30px;
+    --glow-xl: 0 0 60px;
+
+    --radius: 4px;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: 0.15s ease;
+}
+
+/* ---------- Reset & Base ---------- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    cursor: default;
+}
+
+/* 隐藏滚动条 */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(var(--primary-rgb), 0.3);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--primary-rgb), 0.5);
+}
+
+/* ---------- 动态背景 ---------- */
+.bg-grid {
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    z-index: 0;
+    background:
+        repeating-linear-gradient(transparent 0,
+            transparent 49px,
+            rgba(var(--primary-rgb), 0.025) 50px),
+        repeating-linear-gradient(90deg,
+            transparent 0,
+            transparent 49px,
+            rgba(var(--primary-rgb), 0.025) 50px);
+    animation: gridMove 40s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes gridMove {
+    0% {
+        transform: translate(0, 0);
+    }
+
+    100% {
+        transform: translate(50px, 50px);
+    }
+}
+
+.bg-glow {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(var(--primary-rgb), 0.06) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(var(--secondary-rgb), 0.04) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 80%, rgba(var(--accent-rgb), 0.03) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* ---------- App 容器 ---------- */
+#app {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* ---------- 视图系统 ---------- */
+.view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.view.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    animation: viewFadeIn 0.5s ease-out;
+}
+
+@keyframes viewFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(1.02) translateY(10px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* ---------- 主菜单 ---------- */
+.menu-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem;
+    max-width: 1000px;
+    width: 100%;
+}
+
+/* Logo */
+.logo-container {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.logo {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    font-weight: 900;
+    color: var(--primary);
+    letter-spacing: 0.4em;
+    text-shadow:
+        var(--glow-sm) rgba(var(--primary-rgb), 0.8),
+        var(--glow-md) rgba(var(--primary-rgb), 0.4),
+        var(--glow-lg) rgba(var(--primary-rgb), 0.2);
+    animation: logoFlicker 5s ease-in-out infinite;
+    position: relative;
+}
+
+@keyframes logoFlicker {
+
+    0%,
+    100% {
+        opacity: 1;
+        text-shadow:
+            var(--glow-sm) rgba(var(--primary-rgb), 0.8),
+            var(--glow-md) rgba(var(--primary-rgb), 0.4),
+            var(--glow-lg) rgba(var(--primary-rgb), 0.2);
+    }
+
+    5% {
+        opacity: 0.85;
+        text-shadow: none;
+    }
+
+    6% {
+        opacity: 1;
+    }
+
+    41% {
+        opacity: 1;
+    }
+
+    42% {
+        opacity: 0.8;
+        text-shadow: var(--glow-sm) rgba(var(--primary-rgb), 0.3);
+    }
+
+    43% {
+        opacity: 1;
+    }
+
+    44% {
+        opacity: 0.9;
+    }
+
+    45% {
+        opacity: 1;
+        text-shadow:
+            var(--glow-sm) rgba(var(--primary-rgb), 0.8),
+            var(--glow-md) rgba(var(--primary-rgb), 0.4),
+            var(--glow-lg) rgba(var(--primary-rgb), 0.2);
+    }
+}
+
+.subtitle {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5em;
+    margin-top: 0.5rem;
+    text-shadow: var(--glow-sm) rgba(var(--secondary-rgb), 0.5);
+}
+
+.logo-line {
+    width: 120px;
+    height: 2px;
+    margin: 1.2rem auto 0;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(var(--primary-rgb), 0.6),
+            rgba(var(--secondary-rgb), 0.6),
+            transparent);
+}
+
+/* ---------- 模式卡片网格 ---------- */
+.mode-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.2rem;
+    width: 100%;
+    max-width: 900px;
+}
+
+.mode-card {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid rgba(var(--primary-rgb), 0.3);
+    border-radius: var(--radius);
+    padding: 1.5rem 1.2rem;
+    cursor: pointer;
+    transition: var(--transition);
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.mode-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(var(--primary-rgb), 0.8),
+            transparent);
+    opacity: 0;
+    transition: opacity var(--transition);
+}
+
+.mode-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(var(--secondary-rgb), 0.8),
+            transparent);
+    opacity: 0;
+    transition: opacity var(--transition);
+}
+
+.mode-card:hover {
+    border-color: rgba(var(--primary-rgb), 0.6);
+    transform: translateY(-6px);
+    box-shadow:
+        0 10px 40px rgba(var(--primary-rgb), 0.15),
+        inset 0 0 30px rgba(var(--primary-rgb), 0.03);
+}
+
+.mode-card:hover::before,
+.mode-card:hover::after {
+    opacity: 1;
+}
+
+.mode-card:hover .card-glow {
+    opacity: 1;
+}
+
+.mode-card:active {
+    transform: translateY(-2px) scale(0.98);
+}
+
+.card-glow {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center,
+            rgba(var(--primary-rgb), 0.08) 0%,
+            transparent 50%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+
+.card-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+}
+
+.mode-icon {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 0.8rem;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+}
+
+.mode-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+}
+
+.mode-desc {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    line-height: 1.4;
+    margin-bottom: 0.8rem;
+}
+
+.mode-tag {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    color: rgba(var(--primary-rgb), 0.5);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+}
+
+/* ---------- 底部按钮 ---------- */
+.footer-btns {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+/* ---------- 通用按钮 ---------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.8rem;
+    background: transparent;
+    border: 1px solid rgba(var(--secondary-rgb), 0.5);
+    color: var(--secondary);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(var(--secondary-rgb), 0.1),
+            transparent);
+    transition: left 0.5s ease;
+}
+
+.btn:hover {
+    background: rgba(var(--secondary-rgb), 0.1);
+    border-color: var(--secondary);
+    box-shadow: var(--glow-md) rgba(var(--secondary-rgb), 0.3);
+    color: var(--text-bright);
+}
+
+.btn:hover::before {
+    left: 100%;
+}
+
+.btn:active {
+    transform: scale(0.96);
+}
+
+.btn-icon {
+    font-size: 1rem;
+}
+
+.btn-back {
+    border-color: rgba(var(--primary-rgb), 0.4);
+    color: var(--primary);
+    font-size: 0.75rem;
+}
+
+.btn-back:hover {
+    background: rgba(var(--primary-rgb), 0.1);
+    border-color: var(--primary);
+    box-shadow: var(--glow-md) rgba(var(--primary-rgb), 0.3);
+}
+
+/* ---------- 面板视图（灵敏度设置 & 统计） ---------- */
+.panel-container {
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-shadow: var(--glow-sm) rgba(var(--primary-rgb), 0.5);
+    letter-spacing: 0.1em;
+}
+
+.panel-body {
+    background: var(--bg-panel);
+    border: 1px solid rgba(var(--primary-rgb), 0.15);
+    border-radius: var(--radius);
+    padding: 2rem;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+}
+
+.placeholder-text {
+    color: var(--text-dim);
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 3rem 0;
+}
+
+/* ---------- 训练场景视图 ---------- */
+#game-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    background: #0a0a1a;
+    cursor: none;
+}
+
+/* HUD 信息层 */
+.hud {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+    display: none;
+}
+
+.view.active .hud {
+    display: block;
+}
+
+.hud-top-left {
+    position: absolute;
+    top: 20px;
+    left: 30px;
+}
+
+.hud-top-center {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.hud-top-right {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+}
+
+.hud-bottom {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.hud-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 0.5rem 1.2rem;
+    border: 1px solid rgba(var(--primary-rgb), 0.2);
+    border-radius: var(--radius);
+    backdrop-filter: blur(5px);
+}
+
+.hud-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+.hud-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-shadow: var(--glow-sm) rgba(var(--primary-rgb), 0.5);
+}
+
+.hud-timer {
+    font-family: 'Orbitron', monospace;
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--text-bright);
+    text-shadow:
+        var(--glow-sm) rgba(var(--primary-rgb), 0.5),
+        var(--glow-md) rgba(var(--primary-rgb), 0.2);
+    background: rgba(0, 0, 0, 0.5);
+    padding: 0.3rem 1.5rem;
+    border: 1px solid rgba(var(--primary-rgb), 0.2);
+    border-radius: var(--radius);
+}
+
+/* 训练覆盖层（倒计时/暂停/结果） */
+.training-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+}
+
+.training-overlay.hidden {
+    display: none;
+}
+
+.overlay-content {
+    text-align: center;
+    animation: viewFadeIn 0.3s ease-out;
+}
+
+.overlay-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 3rem;
+    font-weight: 900;
+    color: var(--primary);
+    text-shadow:
+        var(--glow-md) rgba(var(--primary-rgb), 0.6),
+        var(--glow-lg) rgba(var(--primary-rgb), 0.3);
+    margin-bottom: 1rem;
+}
+
+.overlay-text {
+    font-size: 1.2rem;
+    color: var(--text-dim);
+    margin-bottom: 2rem;
+}
+
+/* ---------- 难度选择弹窗 ---------- */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+}
+
+.modal-content {
+    position: relative;
+    z-index: 1;
+    background: var(--bg-panel);
+    border: 1px solid rgba(var(--primary-rgb), 0.3);
+    border-radius: var(--radius);
+    padding: 2.5rem;
+    text-align: center;
+    min-width: 400px;
+    animation: viewFadeIn 0.3s ease-out;
+    backdrop-filter: blur(20px);
+}
+
+.modal-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-shadow: var(--glow-sm) rgba(var(--primary-rgb), 0.5);
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.1em;
+}
+
+.modal-subtitle {
+    color: var(--text-dim);
+    font-size: 1rem;
+    margin-bottom: 2rem;
+}
+
+.difficulty-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+}
+
+.btn-difficulty {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: rgba(var(--primary-rgb), 0.03);
+    border: 1px solid rgba(var(--primary-rgb), 0.15);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: left;
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+}
+
+.btn-difficulty:hover {
+    background: rgba(var(--primary-rgb), 0.1);
+    border-color: rgba(var(--primary-rgb), 0.5);
+    transform: translateX(5px);
+    box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.1);
+}
+
+.btn-difficulty:active {
+    transform: translateX(3px) scale(0.98);
+}
+
+.diff-icon {
+    font-size: 1.5rem;
+}
+
+.diff-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-bright);
+    letter-spacing: 0.1em;
+    flex: 1;
+}
+
+.diff-desc {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+}
+
+/* ---------- 通知系统 ---------- */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+}
+
+.notification {
+    padding: 0.8rem 1.5rem;
+    background: var(--bg-panel);
+    border-left: 3px solid var(--primary);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    color: var(--text);
+    backdrop-filter: blur(10px);
+    animation: notifSlideIn 0.3s ease-out;
+    pointer-events: auto;
+}
+
+.notification.success {
+    border-left-color: var(--success);
+}
+
+.notification.error {
+    border-left-color: var(--danger);
+}
+
+.notification.warning {
+    border-left-color: var(--warning);
+}
+
+@keyframes notifSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes notifSlideOut {
+    0% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+}
+
+/* ---------- 输入框样式 ---------- */
+.input-field {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(var(--primary-rgb), 0.2);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    transition: var(--transition);
+    outline: none;
+}
+
+.input-field:focus {
+    border-color: var(--primary);
+    box-shadow: var(--glow-sm) rgba(var(--primary-rgb), 0.3);
+}
+
+.input-field::placeholder {
+    color: var(--text-dim);
+}
+
+/* 下拉框 */
+.select-field {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(var(--primary-rgb), 0.2);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.select-field:focus {
+    border-color: var(--primary);
+    box-shadow: var(--glow-sm) rgba(var(--primary-rgb), 0.3);
+}
+
+/* ---------- 表单组 ---------- */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.2rem;
+}
+
+.form-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+/* DPI 快捷按钮 */
+.dpi-presets {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.dpi-btn {
+    padding: 0.3rem 0.8rem;
+    background: transparent;
+    border: 1px solid rgba(var(--primary-rgb), 0.2);
+    color: var(--text-dim);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    border-radius: 2px;
+}
+
+.dpi-btn:hover,
+.dpi-btn.active {
+    background: rgba(var(--primary-rgb), 0.15);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* ---------- 统计面板样式 ---------- */
+.stats-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(var(--primary-rgb), 0.15);
+}
+
+.stats-tab {
+    padding: 0.6rem 1.5rem;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-dim);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.stats-tab:hover {
+    color: var(--text);
+}
+
+.stats-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+}
+
+.stats-best {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background: rgba(var(--primary-rgb), 0.03);
+    border: 1px solid rgba(var(--primary-rgb), 0.1);
+    border-radius: var(--radius);
+    padding: 1rem;
+    text-align: center;
+}
+
+.stat-card-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+}
+
+.stat-card-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-shadow: var(--glow-sm) rgba(var(--primary-rgb), 0.3);
+}
+
+/* 折线图容器 */
+.chart-container {
+    width: 100%;
+    height: 200px;
+    margin-top: 1rem;
+    border: 1px solid rgba(var(--primary-rgb), 0.1);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+/* ---------- 训练结果页 ---------- */
+.result-container {
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+}
+
+.result-score {
+    font-family: 'Orbitron', monospace;
+    font-size: 5rem;
+    font-weight: 900;
+    color: var(--primary);
+    text-shadow:
+        var(--glow-md) rgba(var(--primary-rgb), 0.6),
+        var(--glow-lg) rgba(var(--primary-rgb), 0.3);
+    margin-bottom: 0.5rem;
+}
+
+.result-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    letter-spacing: 0.3em;
+    margin-bottom: 2rem;
+}
+
+.result-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.result-stat {
+    background: rgba(var(--primary-rgb), 0.03);
+    border: 1px solid rgba(var(--primary-rgb), 0.1);
+    border-radius: var(--radius);
+    padding: 1rem;
+}
+
+.result-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.result-stat-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-bright);
+}
+
+.result-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.new-record {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--warning);
+    text-shadow: var(--glow-md) rgba(255, 170, 0, 0.5);
+    animation: pulse 1s ease-in-out infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
+/* ---------- 倒计时 ---------- */
+.countdown-number {
+    font-family: 'Orbitron', monospace;
+    font-size: 8rem;
+    font-weight: 900;
+    color: var(--primary);
+    text-shadow:
+        var(--glow-lg) rgba(var(--primary-rgb), 0.6),
+        var(--glow-xl) rgba(var(--primary-rgb), 0.3);
+    animation: countdownPop 0.5s ease-out;
+}
+
+@keyframes countdownPop {
+    0% {
+        transform: scale(2);
+        opacity: 0;
+    }
+
+    50% {
+        transform: scale(0.9);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 768px) {
+    .mode-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem;
+    }
+
+    .logo {
+        font-size: 2.5rem;
+        letter-spacing: 0.2em;
+    }
+
+    .subtitle {
+        font-size: 0.8rem;
+        letter-spacing: 0.3em;
+    }
+
+    .footer-btns {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .modal-content {
+        min-width: auto;
+        margin: 1rem;
+    }
+
+    .result-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-best {
+        grid-template-columns: 1fr;
+    }
+}
