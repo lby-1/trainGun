@@ -324,6 +324,12 @@ function renderCustomizeUI() {
                         style="width: 100%; accent-color: var(--primary);">
                 </div>
 
+                <div class="form-group">
+                    <label class="form-label">目标大小缩放: <span id="scale-value">${(custom.targetScale || 1.0).toFixed(1)}x</span></label>
+                    <input type="range" id="target-scale" min="0.5" max="2.0" step="0.1" value="${custom.targetScale || 1.0}"
+                        style="width: 100%; accent-color: var(--primary);">
+                </div>
+
                 <!-- 目标预览 -->
                 <div style="margin-top: 1rem; text-align: center;">
                     <div style="font-family: Orbitron; font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.15em; margin-bottom: 0.5rem;">预览</div>
@@ -399,6 +405,7 @@ function renderCustomizeUI() {
 
     // ---- 事件绑定 ----
     const targetColor = document.getElementById('target-color');
+    const targetScale = document.getElementById('target-scale');
     const targetOpacity = document.getElementById('target-opacity');
     const chStyle = document.getElementById('ch-style');
     const chColor = document.getElementById('ch-color');
@@ -411,13 +418,14 @@ function renderCustomizeUI() {
     const updatePreview = () => {
         document.getElementById('target-color-hex').textContent = targetColor.value;
         document.getElementById('opacity-value').textContent = Math.round(targetOpacity.value * 100) + '%';
+        document.getElementById('scale-value').textContent = parseFloat(targetScale.value).toFixed(1) + 'x';
         document.getElementById('ch-color-hex').textContent = chColor.value;
         document.getElementById('ch-size-val').textContent = chSize.value;
         document.getElementById('ch-gap-val').textContent = chGap.value;
         document.getElementById('ch-thick-val').textContent = chThick.value;
         document.getElementById('ch-opacity-val').textContent = Math.round(chOpacity.value * 100) + '%';
 
-        drawTargetPreview(targetColor.value, parseFloat(targetOpacity.value));
+        drawTargetPreview(targetColor.value, parseFloat(targetOpacity.value), parseFloat(targetScale.value));
         drawCrosshairPreview({
             style: chStyle.value,
             color: chColor.value,
@@ -439,7 +447,7 @@ function renderCustomizeUI() {
     });
 
     // 所有控件绑定
-    [targetColor, targetOpacity, chStyle, chColor, chSize, chGap, chThick, chOpacity].forEach(el => {
+    [targetColor, targetScale, targetOpacity, chStyle, chColor, chSize, chGap, chThick, chOpacity].forEach(el => {
         el.addEventListener('input', updatePreview);
         el.addEventListener('change', updatePreview);
     });
@@ -448,6 +456,7 @@ function renderCustomizeUI() {
     document.getElementById('btn-save-custom').addEventListener('click', () => {
         const newCustom = {
             targetColor: targetColor.value,
+            targetScale: parseFloat(targetScale.value),
             targetOpacity: parseFloat(targetOpacity.value),
             crosshair: {
                 style: chStyle.value,
@@ -470,7 +479,7 @@ function renderCustomizeUI() {
 /**
  * 绘制目标球体预览
  */
-function drawTargetPreview(color, opacity) {
+function drawTargetPreview(color, opacity, scale = 1.0) {
     const canvas = document.getElementById('target-preview');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -480,7 +489,7 @@ function drawTargetPreview(color, opacity) {
     ctx.fillStyle = '#0a0a1a';
     ctx.fillRect(0, 0, w, h);
 
-    const r = 40;
+    const r = 40 * scale;
     const cx = w / 2, cy = h / 2;
 
     // 解析颜色

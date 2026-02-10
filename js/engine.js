@@ -8,6 +8,8 @@ import { loadSensitivity } from './storage.js';
 import { getDefaultConfig } from './sensitivity.js';
 import { updateHUD, showCountdown, showTrainingOverlay, hideTrainingOverlay, showResult } from './ui.js';
 import { saveTrainingResult, getBestScores, loadCustomization, getDefaultCustomization } from './storage.js';
+import { Weapon, WEAPON_PRESETS } from './weapon.js';
+import { audioManager } from './audio.js';
 
 /* ==================== 粒子系统 ==================== */
 class Particle {
@@ -582,6 +584,9 @@ export class GameEngine {
         this.misses = 0;
         this.combo = 0;
         this.maxCombo = 0;
+        this.combo = 0;
+        this.maxCombo = 0;
+        this.weapon = WEAPON_PRESETS.vandal; // 默认使用 Vandal
         this.totalClicks = 0;
         this.headshots = 0;
         this.reactionTimes = [];
@@ -606,7 +611,9 @@ export class GameEngine {
 
         // 绑定
         this._onMouseMove = this._onMouseMove.bind(this);
+        this._onMouseMove = this._onMouseMove.bind(this);
         this._onMouseDown = this._onMouseDown.bind(this);
+        this._onKeyDown = this._onKeyDown.bind(this);
         this._onPointerLockChange = this._onPointerLockChange.bind(this);
         this._gameLoop = this._gameLoop.bind(this);
 
@@ -638,6 +645,8 @@ export class GameEngine {
         this.headshots = 0;
         this.reactionTimes = [];
         this.elapsed = 0;
+        this.shake = 0; // 屏幕震动强度
+        this.shotHistory = [];
         this.trackingFrames = 0;
         this.trackingHitFrames = 0;
         this.targets = [];
@@ -654,9 +663,16 @@ export class GameEngine {
         this.crosshair.x = this.canvas.width / 2;
         this.crosshair.y = this.canvas.height / 2;
 
+        this.crosshair.y = this.canvas.height / 2;
+
+        // 重置武器状态
+        this.weapon.currentAmmo = this.weapon.magazineSize;
+        this.weapon.isReloading = false;
+        this.weapon.currentRecoil = { x: 0, y: 0 };
+
         modeHandler.init(this, difficulty);
 
-        updateHUD({ score: 0, timer: this.duration, accuracy: 100, combo: 0 });
+        updateHUD({ score: 0, timer: this.duration, accuracy: 100, combo: 0, ammo: `${this.weapon.currentAmmo}/${this.weapon.magazineSize}`, weapon: this.weapon.name });
 
         this.state = 'countdown';
         await this._requestPointerLock();
@@ -674,7 +690,10 @@ export class GameEngine {
         }
         document.addEventListener('pointerlockchange', this._onPointerLockChange);
         document.addEventListener('mousemove', this._onMouseMove);
+        document.addEventListener('pointerlockchange', this._onPointerLockChange);
+        document.addEventListener('mousemove', this._onMouseMove);
         document.addEventListener('mousedown', this._onMouseDown);
+        document.addEventListener('keydown', this._onKeyDown);
     }
 
     _onPointerLockChange() {
@@ -691,31 +710,56 @@ export class GameEngine {
 
     _onMouseDown(e) {
         if (this.state !== 'running') return;
+
+        // 右键开镜
+        if (e.button === 2) {
+            this.weapon.toggleScope();
+            return;
+        }
+
         if (e.button !== 0) return;
         if (this.mode === 'tracking') return;
+
+        // 尝试开火
+        const fireResult = this.weapon.fire(performance.now());
+        if (!fireResult.fired) {
+            return;
+        }
+
+        // 播放射击音效
+        audioManager.playShoot(this.weapon.type || 'rifle');
+        this.shake += this.weapon.damage > 80 ? 5 : 2; // 根据伤害震动
 
         this.totalClicks++;
         let hitAny = false;
 
+        // 计算带后坐力的实际命中点
+        const recoilOffset = this.weapon.getOffset();
+        const aimX = this.crosshair.x + recoilOffset.x;
+        const aimY = this.crosshair.y + recoilOffset.y;
+
+
+
         for (const target of this.targets) {
             if (target.state !== 'active') continue;
 
-            // 小人目标特殊处理
             if (target instanceof HumanoidTarget) {
-                const zone = target.getHitZone(this.crosshair.x, this.crosshair.y);
+                const zone = target.getHitZone(aimX, aimY);
                 if (zone) {
                     hitAny = true;
                     const result = target.takeDamage(zone);
-
                     const reactionTime = performance.now() - target.spawnTime;
                     this.reactionTimes.push(reactionTime);
 
                     if (result.headshot) {
                         this.headshots++;
-                        this.particles.emit(this.crosshair.x, this.crosshair.y, '#ff3333', 30);
+                        this.particles.emit(aimX, aimY, '#ff3333', 30);
                         this.addFloatingText(target.x, target.headCenterY - 30, '💀 HEADSHOT!', '#ff3333');
+                        audioManager.playHit(true);
+                        this.shake += 5;
                     } else {
-                        this.particles.emit(this.crosshair.x, this.crosshair.y, '#4488ff', 10);
+                        this.particles.emit(aimX, aimY, '#4488ff', 10);
+                        audioManager.playHit(false);
                     }
 
                     if (result.killed) {
@@ -723,30 +767,25 @@ export class GameEngine {
                         this.combo++;
                         if (this.combo > this.maxCombo) this.maxCombo = this.combo;
                         this.particles.emit(target.x, target.y - target.totalHeight / 2, target.bodyColor, 25);
+                        audioManager.playKill();
                     }
 
-                    if (this.modeHandler.onHit) {
-                        this.modeHandler.onHit(this, target, reactionTime, zone, result);
-                    }
+                    if (this.modeHandler.onHit) this.modeHandler.onHit(this, target, reactionTime, zone, result);
                     break;
                 }
             } else {
-                // 普通球体目标
-                if (target.isHit(this.crosshair.x, this.crosshair.y)) {
+                if (target.isHit(aimX, aimY)) {
                     hitAny = true;
                     target.state = 'hit';
-
                     const reactionTime = performance.now() - target.spawnTime;
                     this.reactionTimes.push(reactionTime);
-
-                    if (this.modeHandler.onHit) {
-                        this.modeHandler.onHit(this, target, reactionTime);
-                    }
-
+                    if (this.modeHandler.onHit) this.modeHandler.onHit(this, target, reactionTime);
                     this.particles.emit(target.x, target.y, target.color, 20);
                     this.hits++;
                     this.combo++;
                     if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+
+                    audioManager.playHit(false); // 普通命中音效
                     break;
                 }
             }
@@ -757,6 +796,13 @@ export class GameEngine {
             this.combo = 0;
             if (this.modeHandler.onMiss) this.modeHandler.onMiss(this);
         }
+
+        // 记录射击历史 (归一化坐标，节省空间且适应窗口变化)
+        this.shotHistory.push({
+            x: aimX / this.canvas.width,
+            y: aimY / this.canvas.height,
+            hit: hitAny
+        });
     }
 
     _startLoop() { this.animFrameId = requestAnimationFrame(this._gameLoop); }
@@ -765,6 +811,29 @@ export class GameEngine {
         if (this.animFrameId) {
             cancelAnimationFrame(this.animFrameId);
             this.animFrameId = null;
+        }
+    }
+
+    _onKeyDown(e) {
+        if (this.state !== 'running') return;
+        const key = e.key.toLowerCase();
+
+        if (key === 'r') this.weapon.reload();
+
+        if (['1', '2', '3', '4'].includes(key)) {
+            let newWeapon = null;
+            if (key === '1') newWeapon = WEAPON_PRESETS.standard;
+            if (key === '2') newWeapon = WEAPON_PRESETS.vandal;
+            if (key === '3') newWeapon = WEAPON_PRESETS.sheriff;
+            if (key === '4') newWeapon = WEAPON_PRESETS.operator;
+
+            if (newWeapon && this.weapon.name !== newWeapon.name) {
+                this.weapon = newWeapon;
+                this.weapon.currentAmmo = this.weapon.magazineSize;
+                this.weapon.currentRecoil = { x: 0, y: 0 };
+                this.weapon.isReloading = false;
+                this.addFloatingText(this.crosshair.x, this.crosshair.y - 100, `Switched to ${this.weapon.name}`, '#ffffff');
+            }
         }
     }
 
@@ -780,6 +849,14 @@ export class GameEngine {
 
         this.targets.forEach(t => t.update(dt));
         this.particles.update(dt);
+        this.weapon.update(dt);
+
+        // 更新震动
+        if (this.shake > 0) {
+            this.shake *= 0.9;
+            if (this.shake < 0.5) this.shake = 0;
+        }
+
         this.floatingTexts = this.floatingTexts.filter(ft => { ft.update(dt); return !ft.isDead; });
         if (this.modeHandler.update) this.modeHandler.update(this, dt);
         this.targets = this.targets.filter(t => t.state === 'active');
@@ -789,7 +866,14 @@ export class GameEngine {
             ? (this.trackingFrames > 0 ? Math.round(this.trackingHitFrames / this.trackingFrames * 100) : 100)
             : (this.totalClicks > 0 ? Math.round(this.hits / this.totalClicks * 100) : 100);
 
-        updateHUD({ score: this.score, timer: Math.ceil(remaining), accuracy, combo: this.combo });
+        updateHUD({
+            score: this.score,
+            timer: Math.ceil(remaining),
+            accuracy,
+            combo: this.combo,
+            ammo: this.weapon.isReloading ? 'RELOADING...' : `${this.weapon.currentAmmo}/${this.weapon.magazineSize}`,
+            weapon: this.weapon.name
+        });
         this.animFrameId = requestAnimationFrame(this._gameLoop);
     }
 
@@ -800,12 +884,31 @@ export class GameEngine {
 
         ctx.fillStyle = '#0a0a1a';
         ctx.fillRect(0, 0, w, h);
+
+        ctx.save();
+        if (this.shake > 0) {
+            const dx = (Math.random() - 0.5) * this.shake;
+            const dy = (Math.random() - 0.5) * this.shake;
+            ctx.translate(dx, dy);
+        }
+
         this._renderGrid(ctx, w, h);
         this._renderVignette(ctx, w, h);
         this.targets.forEach(t => t.render(ctx));
         this.particles.render(ctx);
         this.floatingTexts.forEach(ft => ft.render(ctx));
+        ctx.restore(); // 结束震动偏移范围
+
+        const originalX = this.crosshair.x;
+        const originalY = this.crosshair.y;
+        const recoilOffset = this.weapon.getOffset();
+
+        this.crosshair.x += recoilOffset.x;
+        this.crosshair.y += recoilOffset.y;
         this.crosshair.render(ctx);
+
+        this.crosshair.x = originalX;
+        this.crosshair.y = originalY;
     }
 
     _renderGrid(ctx, w, h) {
@@ -854,6 +957,7 @@ export class GameEngine {
         if (document.pointerLockElement) document.exitPointerLock();
         document.removeEventListener('mousemove', this._onMouseMove);
         document.removeEventListener('mousedown', this._onMouseDown);
+        document.removeEventListener('keydown', this._onKeyDown);
         document.removeEventListener('pointerlockchange', this._onPointerLockChange);
 
         const accuracy = this.mode === 'tracking'
@@ -874,7 +978,8 @@ export class GameEngine {
             hits: this.hits,
             misses: this.misses,
             maxCombo: this.maxCombo,
-            headshots: this.headshots
+            headshots: this.headshots,
+            shotHistory: this.shotHistory
         };
 
         saveTrainingResult(result);
@@ -894,6 +999,8 @@ export class GameEngine {
         if (document.pointerLockElement) document.exitPointerLock();
         document.removeEventListener('mousemove', this._onMouseMove);
         document.removeEventListener('mousedown', this._onMouseDown);
+        document.removeEventListener('keydown', this._onKeyDown);
         document.removeEventListener('pointerlockchange', this._onPointerLockChange);
     }
 }
+

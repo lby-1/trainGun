@@ -28,6 +28,7 @@ export function loadSensitivity() {
 export function getDefaultCustomization() {
     return {
         targetColor: '#ff3366',
+        targetScale: 1.0,
         targetOpacity: 0.9,
         crosshair: {
             color: '#00fff0',

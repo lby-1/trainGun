@@ -154,6 +154,12 @@ export function updateHUD(data) {
     if (data.combo !== undefined) {
         document.getElementById('hud-combo').textContent = data.combo + 'x';
     }
+    if (data.ammo !== undefined) {
+        document.getElementById('hud-ammo').textContent = data.ammo;
+    }
+    if (data.weapon !== undefined) {
+        document.getElementById('hud-weapon').textContent = data.weapon;
+    }
 }
 
 /**
@@ -191,6 +197,10 @@ export function showResult(result, isNewRecord, onRetry, onMenu) {
                     <div class="result-stat-label">训练时长</div>
                     <div class="result-stat-value">${result.duration}s</div>
                 </div>
+        </div>
+            <div class="result-heatmap-container" style="text-align:center; margin: 1rem 0;">
+                <div style="font-family: Orbitron; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.5rem; letter-spacing: 0.1em;">SHOOTING DISTRIBUTION</div>
+                <canvas id="result-heatmap" width="400" height="225" style="background: rgba(10,10,26,0.8); border: 1px solid rgba(0,255,240,0.2); border-radius: 4px; box-shadow: 0 0 15px rgba(0,0,0,0.5);"></canvas>
             </div>
             <div class="result-actions">
                 <button class="btn" id="btn-retry">🔄 再来一次</button>
@@ -198,6 +208,54 @@ export function showResult(result, isNewRecord, onRetry, onMenu) {
             </div>
         </div>
     `;
+
+    // 绘制热力图
+    requestAnimationFrame(() => {
+        const hCanvas = document.getElementById('result-heatmap');
+        if (hCanvas && result.shotHistory) {
+            const ctx = hCanvas.getContext('2d');
+            const w = hCanvas.width;
+            const h = hCanvas.height;
+
+            // 网格
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let x = 0; x < w; x += 25) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+            for (let y = 0; y < h; y += 25) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+            ctx.stroke();
+
+            // 中心点
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.beginPath(); ctx.arc(w / 2, h / 2, 2, 0, Math.PI * 2); ctx.fill();
+
+            // 绘制点
+            result.shotHistory.forEach(shot => {
+                const x = shot.x * w;
+                const y = shot.y * h;
+
+                // 简单的发光效果
+                const grad = ctx.createRadialGradient(x, y, 0, x, y, 6);
+                if (shot.hit) {
+                    grad.addColorStop(0, 'rgba(0, 255, 160, 0.8)');
+                    grad.addColorStop(1, 'rgba(0, 255, 160, 0)');
+                } else {
+                    grad.addColorStop(0, 'rgba(255, 50, 80, 0.8)');
+                    grad.addColorStop(1, 'rgba(255, 50, 80, 0)');
+                }
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 简单的图例
+            ctx.font = '10px Orbitron';
+            ctx.fillStyle = '#00ffa0'; ctx.fillText('HIT', 10, h - 10);
+            ctx.fillStyle = '#ff3250'; ctx.fillText('MISS', 40, h - 10);
+        }
+    });
 
     // 得分滚动动画
     animateScore(result.score);
