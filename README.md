@@ -12,6 +12,10 @@
   </p>
 </p>
 
+<p align="center">
+  <img src="docs/images/main_menu.png" alt="TRAINGÜN 主界面" width="800">
+</p>
+
 ---
 
 ## 🔥 为什么选择 TRAINGÜN？
@@ -84,7 +88,7 @@
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/YOUR_USERNAME/trainGun.git
+git clone https://github.com/lby-1/trainGun.git
 cd trainGun
 
 # 2. 启动本地服务器（任选一种）
@@ -151,18 +155,13 @@ trainGun/
 
 ## 📸 界面预览
 
-<details>
-<summary>🖼️ 点击展开截图</summary>
+### 主界面
 
-| 主菜单 | 训练中 | 自定义设置 |
-|--------|--------|-----------|
-| 6 种模式卡片 + 赛博朋克风格 | 3D 球体目标 + HUD 显示 | 球体颜色/准星自定义 |
+<p align="center">
+  <img src="docs/images/main_menu.png" alt="TRAINGÜN 主界面 - 6种训练模式" width="800">
+</p>
 
-| 小人模式 | 灵敏度设置 | 成绩统计 |
-|----------|-----------|----------|
-| 爆头/身体判定 + HP 条 | 游戏灵敏度同步 | 折线图趋势分析 |
-
-</details>
+> 赛博朋克暗黑风主界面，6 种训练模式一览，底部提供灵敏度设置、自定义设置和训练统计入口。
 
 ---
 
