@@ -1,0 +1,14 @@
+.git
+.gitignore
+.gemini
+.agent
+.vscode
+.idea
+docs/plans
+node_modules
+*.md
+!README.md
+Dockerfile
+docker-compose.yml
+LICENSE
+*.log

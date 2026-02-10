@@ -1,0 +1,17 @@
+# ============================================================
+# TRAINGÜN - Docker Compose 配置
+# ============================================================
+
+services:
+  traingun:
+    build: .
+    container_name: traingun
+    ports:
+      - "3030:80"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost/" ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s

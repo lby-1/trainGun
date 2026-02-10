@@ -102,6 +102,45 @@ python -m http.server 3030
 
 > ⚠️ **注意：** 由于使用了 ES Module，不能直接双击 `index.html` 打开，必须通过 HTTP 服务器访问。
 
+### 方法三：Docker 部署
+
+**一键启动（推荐）：**
+
+```bash
+# 克隆仓库
+git clone https://github.com/lby-1/trainGun.git
+cd trainGun
+
+# 使用 Docker Compose 启动
+docker compose up -d
+
+# 访问 http://localhost:3030
+```
+
+**手动构建：**
+
+```bash
+# 构建镜像
+docker build -t traingun .
+
+# 运行容器
+docker run -d --name traingun -p 3030:80 traingun
+
+# 访问 http://localhost:3030
+```
+
+**停止和清理：**
+
+```bash
+# Docker Compose 方式
+docker compose down
+
+# 手动方式
+docker stop traingun && docker rm traingun
+```
+
+> 💡 **容器特性：** 基于 `nginx:alpine` 轻量镜像（~40MB），内置 Gzip 压缩、安全响应头、静态资源缓存策略和健康检查。
+
 ---
 
 ## 🎮 操作说明
