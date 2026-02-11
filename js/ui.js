@@ -91,8 +91,8 @@ export function showTrainingOverlay(title, text, showExitBtn = true) {
     const textEl = document.getElementById('overlay-text');
     const exitBtn = document.getElementById('btn-exit-training');
 
-    titleEl.textContent = title;
-    textEl.textContent = text;
+    titleEl.innerHTML = title;
+    textEl.innerHTML = text;
     exitBtn.style.display = showExitBtn ? 'inline-flex' : 'none';
     overlay.classList.remove('hidden');
 }

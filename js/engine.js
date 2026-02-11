@@ -4,13 +4,12 @@
    新增：3D 球体渲染, 小人目标, 可配置准星, 目标自定义
    ============================================================ */
 
-import { loadSensitivity } from './storage.js';
-import { getDefaultConfig } from './sensitivity.js';
 import { updateHUD, showCountdown, showTrainingOverlay, hideTrainingOverlay, showResult } from './ui.js';
-import { saveTrainingResult, getBestScores, loadCustomization, getDefaultCustomization } from './storage.js';
+import { saveTrainingResult, getBestScores, loadCustomization, getDefaultCustomization, saveSensitivity, loadSensitivity } from './storage.js';
 import { Weapon, WEAPON_PRESETS } from './weapon.js';
 import { audioManager } from './audio.js';
 import { keybindManager, ACTIONS } from './keybinds.js';
+import { calculateFromGame, getDefaultConfig } from './sensitivity.js';
 
 /* ==================== 粒子系统 ==================== */
 class Particle {
@@ -81,11 +80,12 @@ class ParticleSystem {
 
 /* ==================== 浮动文字 ==================== */
 class FloatingText {
-    constructor(x, y, text, color, duration = 0.8) {
+    constructor(x, y, text, color, fontSize = 18, duration = 0.8) {
         this.x = x;
         this.y = y;
         this.text = text;
         this.color = color;
+        this.fontSize = fontSize;
         this.life = duration;
         this.maxLife = duration;
         this.vy = -80;
@@ -102,7 +102,7 @@ class FloatingText {
         const scale = 0.8 + (1 - alpha) * 0.4;
         ctx.save();
         ctx.globalAlpha = alpha;
-        ctx.font = `bold ${Math.round(18 * scale)}px Orbitron`;
+        ctx.font = `bold ${Math.round(this.fontSize * scale)}px Orbitron`;
         ctx.fillStyle = this.color;
         ctx.shadowBlur = 10;
         ctx.shadowColor = this.color;
@@ -857,6 +857,51 @@ export class GameEngine {
         if (keybindManager.isAction(ACTIONS.WEAPON_2, e)) this._switchWeapon(WEAPON_PRESETS.vandal);
         if (keybindManager.isAction(ACTIONS.WEAPON_3, e)) this._switchWeapon(WEAPON_PRESETS.sheriff);
         if (keybindManager.isAction(ACTIONS.WEAPON_4, e)) this._switchWeapon(WEAPON_PRESETS.operator);
+
+        if (keybindManager.isAction(ACTIONS.SENS_UP, e)) this.adjustSensitivity(1);
+        if (keybindManager.isAction(ACTIONS.SENS_DOWN, e)) this.adjustSensitivity(-1);
+    }
+
+    adjustSensitivity(direction) {
+        // 1. 获取当前配置
+        const config = loadSensitivity() || getDefaultConfig();
+
+        // 2. 计算新值
+        let currentSens = config.sensitivity;
+        let step = 0.05;
+        if (currentSens >= 5) step = 0.5;
+        else if (currentSens >= 1) step = 0.1;
+
+        let newSens = currentSens + (direction * step);
+        newSens = Math.max(0.01, Math.round(newSens * 100) / 100); // 保留两位小数
+
+        if (newSens === currentSens) return;
+
+        // 3. 重新计算相关参数
+        const result = calculateFromGame(config.game, newSens, config.dpi);
+
+        // 4. 更新配置对象
+        const newConfig = {
+            ...config,
+            sensitivity: newSens,
+            cm360: result.cm360,
+            webSensitivity: result.webSensitivity
+        };
+
+        // 5. 应用并保存
+        this.webSensitivity = result.webSensitivity;
+        saveSensitivity(newConfig);
+
+        // 6. 视觉反馈
+        this.addFloatingText(
+            this.canvas.width / 2,
+            this.canvas.height / 2 + 100,
+            `Sensitivity: ${newSens.toFixed(2)} (${result.cm360}cm)`,
+            '#00fff0',
+            30,
+            1500
+        );
+        audioManager.playHit(); // 借用一下音效作为反馈
     }
 
     _switchWeapon(newWeapon) {
@@ -980,15 +1025,15 @@ export class GameEngine {
         ctx.fillRect(0, 0, w, h);
     }
 
-    addFloatingText(x, y, text, color = '#00fff0') {
-        this.floatingTexts.push(new FloatingText(x, y, text, color));
+    addFloatingText(x, y, text, color = '#00fff0', fontSize = 18, durationMs = 800) {
+        this.floatingTexts.push(new FloatingText(x, y, text, color, fontSize, durationMs / 1000));
     }
 
     pause() {
         if (this.state !== 'running') return;
         this.state = 'paused';
         this._stopLoop();
-        showTrainingOverlay('已暂停', '点击画面继续 · ESC 返回菜单', true);
+        showTrainingOverlay('已暂停', '点击画面继续 · ESC 返回菜单<br><span style="font-size: 0.8rem; color: var(--text-dim); margin-top: 1rem; display: block;">💡 按 ↑ ↓ 调整灵敏度</span>', true);
 
         const resumeHandler = async () => {
             this.canvas.removeEventListener('click', resumeHandler);

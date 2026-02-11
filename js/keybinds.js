@@ -13,7 +13,9 @@ export const ACTIONS = {
     WEAPON_1: 'weapon1',
     WEAPON_2: 'weapon2',
     WEAPON_3: 'weapon3',
-    WEAPON_4: 'weapon4'
+    WEAPON_4: 'weapon4',
+    SENS_UP: 'sens_up',
+    SENS_DOWN: 'sens_down'
 };
 
 const DEFAULT_KEYBINDS = {
@@ -25,7 +27,9 @@ const DEFAULT_KEYBINDS = {
     [ACTIONS.WEAPON_1]: { type: 'keyboard', code: 'Digit1' },
     [ACTIONS.WEAPON_2]: { type: 'keyboard', code: 'Digit2' },
     [ACTIONS.WEAPON_3]: { type: 'keyboard', code: 'Digit3' },
-    [ACTIONS.WEAPON_4]: { type: 'keyboard', code: 'Digit4' }
+    [ACTIONS.WEAPON_4]: { type: 'keyboard', code: 'Digit4' },
+    [ACTIONS.SENS_UP]: { type: 'keyboard', code: 'ArrowUp' },
+    [ACTIONS.SENS_DOWN]: { type: 'keyboard', code: 'ArrowDown' }
 };
 
 class KeybindManager {
