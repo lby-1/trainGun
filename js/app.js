@@ -27,6 +27,8 @@ import {
     saveCustomization, loadCustomization, getDefaultCustomization
 } from './storage.js';
 import { renderStatsPanel } from './stats.js';
+import { keybindManager, ACTIONS } from './keybinds.js';
+import { routineManager } from './routine.js';
 
 /* ---------- 模式映射 ---------- */
 const MODE_HANDLERS = {
@@ -396,14 +398,38 @@ function renderCustomizeUI() {
                     "></canvas>
                 </div>
             </div>
+    // ---- 结束 grid ----
         </div>
 
-        <button class="btn" id="btn-save-custom" style="margin-top: 1.5rem; width: 100%;">
-            💾 保存自定义设置
+        <!-- Controls Section -->
+        <h3 style="font-family: Orbitron; font-size: 0.85rem; color: var(--text); letter-spacing: 0.15em; margin: 2rem 0 1rem;">
+            ⌨️ 键位设置 (CONTROLS)
+        </h3>
+        <div class="controls-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+            ${Object.values(ACTIONS).map(action => `
+                <div class="control-item" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-dim); font-size: 0.8rem;">${action.toUpperCase()}</span>
+                    <button class="btn-bind" data-action="${action}" style="
+                        background: rgba(0,0,0,0.3); border: 1px solid rgba(0,255,240,0.3); color: var(--primary);
+                        padding: 0.2rem 0.8rem; font-family: Orbitron; font-size: 0.8rem; cursor: pointer; min-width: 80px;
+                    ">
+                        ${keybindManager.getDisplayString(action)}
+                    </button>
+                </div>
+            `).join('')}
+            <div class="control-item" style="display: flex; align-items: center;">
+                 <button class="btn" id="btn-reset-binds" style="width: 100%; border-color: rgba(255, 50, 80, 0.5); color: #ff3250;">
+                    ⟲ 重置键位
+                 </button>
+            </div>
+        </div>
+
+        <button class="btn" id="btn-save-custom" style="margin-top: 2rem; width: 100%;">
+            💾 保存所有设置
         </button>
     `;
 
-    // ---- 事件绑定 ----
+    // ---- 事件绑定 (原有) ----
     const targetColor = document.getElementById('target-color');
     const targetScale = document.getElementById('target-scale');
     const targetOpacity = document.getElementById('target-opacity');
@@ -452,7 +478,64 @@ function renderCustomizeUI() {
         el.addEventListener('change', updatePreview);
     });
 
-    // 保存按钮
+    // 键位绑定逻辑
+    let activeBindBtn = null;
+
+    // 全局监听器 (用于捕获按键)
+    const handleBindInput = (e) => {
+        if (!activeBindBtn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const action = activeBindBtn.dataset.action;
+
+        // 忽略 ESC (取消绑定)
+        if (e.type === 'keydown' && e.code === 'Escape') {
+            activeBindBtn.textContent = keybindManager.getDisplayString(action);
+            activeBindBtn.classList.remove('binding');
+            activeBindBtn = null;
+            document.removeEventListener('keydown', handleBindInput);
+            document.removeEventListener('mousedown', handleBindInput);
+            return;
+        }
+
+        keybindManager.rebind(action, e);
+
+        activeBindBtn.textContent = keybindManager.getDisplayString(action);
+        activeBindBtn.classList.remove('binding');
+        activeBindBtn = null;
+
+        showNotification(`✅ 已绑定 ${action.toUpperCase()}`, 'success');
+
+        document.removeEventListener('keydown', handleBindInput);
+        document.removeEventListener('mousedown', handleBindInput);
+    };
+
+    document.querySelectorAll('.btn-bind').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            if (activeBindBtn) return;
+
+            e.stopPropagation(); // 防止立即触发 mousedown
+            activeBindBtn = btn;
+            btn.textContent = '按任意键...';
+            btn.classList.add('binding');
+
+            // 添加一次性监听器
+            document.addEventListener('keydown', handleBindInput);
+            document.addEventListener('mousedown', handleBindInput);
+        });
+    });
+
+    document.getElementById('btn-reset-binds').addEventListener('click', () => {
+        if (confirm('确定要重置所有键位吗？')) {
+            keybindManager.resetDefaults();
+            renderCustomizeUI(); // 重新渲染
+            showNotification('键位已重置', 'info');
+        }
+    });
+
+    // 保存按钮 (视觉设置)
     document.getElementById('btn-save-custom').addEventListener('click', () => {
         const newCustom = {
             targetColor: targetColor.value,
@@ -587,6 +670,134 @@ function drawCrosshairPreview(config) {
     }
     ctx.restore();
 }
+
+/* ============================================================
+   Routine Logic
+   ============================================================ */
+
+function renderRoutinesUI() {
+    const listContainer = document.getElementById('routine-list');
+    const detailContainer = document.getElementById('routine-detail');
+    if (!listContainer || !detailContainer) return;
+
+    const routines = routineManager.routines;
+
+    // Render List
+    listContainer.innerHTML = routines.map(r => `
+        <div class="routine-item" data-id="${r.id}" style="
+            background: rgba(255,255,255,0.05); padding: 1rem; margin-bottom: 0.5rem; 
+            border-left: 3px solid transparent; cursor: pointer; transition: all 0.2s;
+        ">
+            <div style="font-family: Orbitron; color: var(--text);">${r.name}</div>
+            <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 0.3rem;">
+                ${r.steps.length} Steps · ${Math.round(r.steps.reduce((a, b) => a + b.duration, 0) / 60)} min
+            </div>
+        </div>
+    `).join('');
+
+    // Bind Click
+    listContainer.querySelectorAll('.routine-item').forEach(item => {
+        item.addEventListener('click', () => {
+            listContainer.querySelectorAll('.routine-item').forEach(i => i.style.borderLeftColor = 'transparent');
+            item.style.borderLeftColor = '#00fff0';
+            renderRoutineDetail(item.dataset.id);
+        });
+    });
+}
+
+function renderRoutineDetail(id) {
+    const container = document.getElementById('routine-detail');
+    const routine = routineManager.routines.find(r => r.id === id);
+    if (!routine) return;
+
+    container.innerHTML = `
+        <h3 style="font-family: Orbitron; color: var(--primary); margin-bottom: 1rem;">${routine.name}</h3>
+        <div class="routine-steps" style="margin-bottom: 2rem;">
+            ${routine.steps.map((s, i) => `
+                <div style="
+                    display: flex; align-items: center; gap: 1rem; padding: 0.8rem;
+                    border-bottom: 1px solid rgba(255,255,255,0.1);
+                ">
+                    <span style="color: var(--text-dim); font-family: Orbitron;">${i + 1}</span>
+                    <span style="flex: 1; color: var(--text); font-weight: 500;">${MODE_NAMES[s.mode] || s.mode}</span>
+                    <span style="color: var(--text-dim); font-size: 0.85rem;">${s.difficulty.toUpperCase()}</span>
+                    <span style="color: var(--secondary); font-family: Orbitron;">${s.duration}s</span>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn" onclick="window.app.startRoutine('${routine.id}')" style="width: 100%;">
+            ▶ START ROUTINE
+        </button>
+        <div style="margin-top: 1rem; text-align: center; color: var(--text-dim); font-size: 0.8rem;">
+            * 编辑功能开发中...
+        </div>
+    `;
+}
+
+// Expose to window for onclick
+window.app.startRoutine = (id) => {
+    if (routineManager.startRoutine(id)) {
+        runRoutineStep();
+    }
+};
+
+async function runRoutineStep() {
+    const step = routineManager.getCurrentStep();
+
+    if (!step) {
+        showNotification('🎉 Routine Finished!', 'success');
+        router.showView('menu');
+        return;
+    }
+
+    const modeHandler = MODE_HANDLERS[step.mode];
+    if (!modeHandler) {
+        showNotification(`Error: Unknown mode ${step.mode}`, 'error');
+        return;
+    }
+
+    router.showView('training');
+
+    // Custom loading screen
+    const overlay = document.getElementById('training-overlay');
+    const titleEl = document.getElementById('overlay-title');
+    const textEl = document.getElementById('overlay-text');
+
+    overlay.classList.remove('hidden');
+    document.getElementById('btn-exit-training').style.display = 'none'; // Hide exit during transition
+
+    // Smooth transition
+    titleEl.innerHTML = `<span style="color: var(--primary)">STEP ${step.stepIndex} / ${step.totalSteps}</span>`;
+    textEl.innerHTML = `${MODE_NAMES[step.mode]}<br><span style="font-size: 1.5rem; color: var(--secondary);">${step.duration}s</span>`;
+
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Start Engine
+    if (state.engine) {
+        state.engine.init(step.mode, step.difficulty, modeHandler, {
+            duration: step.duration,
+            onComplete: (result) => {
+                // Show brief result or just next?
+                // For now, auto-next
+                showNotification(`Step Complete! Score: ${result.score}`, 'success');
+                routineManager.nextStep();
+                runRoutineStep();
+            }
+        });
+    }
+}
+
+// Update Router to handle routines
+const originalShowView = router.showView.bind(router);
+router.showView = (viewName) => {
+    originalShowView(viewName);
+    if (viewName === 'routines') renderRoutinesUI();
+};
+
+// Add event listener for routine button
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btn-routines')?.addEventListener('click', () => router.showView('routines'));
+});
 
 /* ---------- 导出 ---------- */
 export { router, state };

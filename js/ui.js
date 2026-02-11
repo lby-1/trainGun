@@ -198,10 +198,17 @@ export function showResult(result, isNewRecord, onRetry, onMenu) {
                     <div class="result-stat-value">${result.duration}s</div>
                 </div>
         </div>
-            <div class="result-heatmap-container" style="text-align:center; margin: 1rem 0;">
-                <div style="font-family: Orbitron; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.5rem; letter-spacing: 0.1em;">SHOOTING DISTRIBUTION</div>
-                <canvas id="result-heatmap" width="400" height="225" style="background: rgba(10,10,26,0.8); border: 1px solid rgba(0,255,240,0.2); border-radius: 4px; box-shadow: 0 0 15px rgba(0,0,0,0.5);"></canvas>
+            <div class="result-heatmap-container" style="display: flex; gap: 1rem; justify-content: center; margin: 1rem 0;">
+                <div style="text-align: center;">
+                    <div style="font-family: Orbitron; font-size: 0.7rem; color: var(--text-dim); margin-bottom: 0.5rem; letter-spacing: 0.1em;">SHOOTING SCATTER</div>
+                    <canvas id="result-heatmap" width="300" height="200" style="background: rgba(10,10,26,0.8); border: 1px solid rgba(0,255,240,0.2); border-radius: 4px; box-shadow: 0 0 15px rgba(0,0,0,0.5);"></canvas>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-family: Orbitron; font-size: 0.7rem; color: var(--text-dim); margin-bottom: 0.5rem; letter-spacing: 0.1em;">QUADRANT ERROR</div>
+                    <canvas id="result-quadrant" width="200" height="200" style="background: rgba(10,10,26,0.8); border: 1px solid rgba(255,0,255,0.2); border-radius: 4px; box-shadow: 0 0 15px rgba(0,0,0,0.5);"></canvas>
+                </div>
             </div>
+            
             <div class="result-actions">
                 <button class="btn" id="btn-retry">🔄 再来一次</button>
                 <button class="btn btn-back" id="btn-result-menu">← 返回菜单</button>
@@ -209,53 +216,119 @@ export function showResult(result, isNewRecord, onRetry, onMenu) {
         </div>
     `;
 
-    // 绘制热力图
+    // 绘制热力图 (原有) & 象限分析 (新增)
     requestAnimationFrame(() => {
         const hCanvas = document.getElementById('result-heatmap');
+        const qCanvas = document.getElementById('result-quadrant');
+
         if (hCanvas && result.shotHistory) {
-            const ctx = hCanvas.getContext('2d');
-            const w = hCanvas.width;
-            const h = hCanvas.height;
-
-            // 网格
-            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            for (let x = 0; x < w; x += 25) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
-            for (let y = 0; y < h; y += 25) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
-            ctx.stroke();
-
-            // 中心点
-            ctx.fillStyle = 'rgba(255,255,255,0.1)';
-            ctx.beginPath(); ctx.arc(w / 2, h / 2, 2, 0, Math.PI * 2); ctx.fill();
-
-            // 绘制点
-            result.shotHistory.forEach(shot => {
-                const x = shot.x * w;
-                const y = shot.y * h;
-
-                // 简单的发光效果
-                const grad = ctx.createRadialGradient(x, y, 0, x, y, 6);
-                if (shot.hit) {
-                    grad.addColorStop(0, 'rgba(0, 255, 160, 0.8)');
-                    grad.addColorStop(1, 'rgba(0, 255, 160, 0)');
-                } else {
-                    grad.addColorStop(0, 'rgba(255, 50, 80, 0.8)');
-                    grad.addColorStop(1, 'rgba(255, 50, 80, 0)');
-                }
-
-                ctx.fillStyle = grad;
-                ctx.beginPath();
-                ctx.arc(x, y, 6, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            // 简单的图例
-            ctx.font = '10px Orbitron';
-            ctx.fillStyle = '#00ffa0'; ctx.fillText('HIT', 10, h - 10);
-            ctx.fillStyle = '#ff3250'; ctx.fillText('MISS', 40, h - 10);
+            drawHeatmap(hCanvas, result.shotHistory);
+        }
+        if (qCanvas && result.shotHistory) {
+            drawQuadrantAnalysis(qCanvas, result.shotHistory);
         }
     });
+
+    // ... (rest of function)
+}
+
+function drawHeatmap(canvas, history) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // ... (existing heatmap code) ...
+    // Note: I need to rewrite the existing code here since I'm replacing the whole block.
+    // Or I can extract it to helper function which I am doing now.
+
+    // 网格
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = 0; x < w; x += 25) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+    for (let y = 0; y < h; y += 25) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+    ctx.stroke();
+
+    // 绘制点
+    history.forEach(shot => {
+        const x = shot.x * w;
+        const y = shot.y * h;
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, 6);
+        if (shot.hit) {
+            grad.addColorStop(0, 'rgba(0, 255, 160, 0.8)');
+            grad.addColorStop(1, 'rgba(0, 255, 160, 0)');
+        } else {
+            grad.addColorStop(0, 'rgba(255, 50, 80, 0.8)');
+            grad.addColorStop(1, 'rgba(255, 50, 80, 0)');
+        }
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
+    });
+}
+
+function drawQuadrantAnalysis(canvas, history) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const cx = w / 2, cy = h / 2;
+
+    // 坐标系
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
+    ctx.moveTo(0, cy); ctx.lineTo(w, cy);
+    ctx.stroke();
+
+    // 统计象限错误 (仅统计 Miss)
+    const misses = history.filter(s => !s.hit && s.tx !== undefined);
+    const quadrants = [0, 0, 0, 0]; // UL, UR, LL, LR
+
+    misses.forEach(s => {
+        const dx = s.x - s.tx; // 偏移量 X
+        const dy = s.y - s.ty; // 偏移量 Y
+        // 注意：Y轴向下为正
+        if (dx < 0 && dy < 0) quadrants[0]++; // 左上 (UL)
+        else if (dx >= 0 && dy < 0) quadrants[1]++; // 右上 (UR)
+        else if (dx < 0 && dy >= 0) quadrants[2]++; // 左下 (LL)
+        else quadrants[3]++; // 右下 (LR)
+    });
+
+    const total = misses.length || 1;
+
+    // 绘制象限文字
+    ctx.font = '700 16px Orbitron';
+    ctx.textAlign = 'center';
+
+    const drawQ = (idx, x, y, name) => {
+        const pct = Math.round(quadrants[idx] / total * 100);
+        const color = pct > 40 ? '#ff3366' : (pct > 25 ? '#ffaa00' : '#00fff0');
+        ctx.fillStyle = color;
+        ctx.fillText(`${pct}%`, x, y);
+        ctx.font = '10px Rajdhani';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillText(name, x, y + 15);
+        ctx.font = '700 16px Orbitron'; // reset
+    };
+
+    drawQ(0, cx - 40, cy - 40, 'Early/High');
+    drawQ(1, cx + 40, cy - 40, 'Late/High');
+    drawQ(2, cx - 40, cy + 40, 'Early/Low');
+    drawQ(3, cx + 40, cy + 40, 'Late/Low');
+
+    // 绘制所有射击点 (归一化到中心)
+    ctx.globalCompositeOperation = 'lighter';
+    history.forEach(s => {
+        if (s.tx === undefined) return;
+        const dx = (s.x - s.tx) * w * 2; // 放大显示偏移
+        const dy = (s.y - s.ty) * h * 2;
+
+        ctx.fillStyle = s.hit ? 'rgba(0,255,160,0.3)' : 'rgba(255,50,80,0.3)';
+        ctx.beginPath();
+        ctx.arc(cx + dx, cy + dy, 2, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    ctx.globalCompositeOperation = 'source-over';
+
 
     // 得分滚动动画
     animateScore(result.score);

@@ -10,6 +10,7 @@ import { updateHUD, showCountdown, showTrainingOverlay, hideTrainingOverlay, sho
 import { saveTrainingResult, getBestScores, loadCustomization, getDefaultCustomization } from './storage.js';
 import { Weapon, WEAPON_PRESETS } from './weapon.js';
 import { audioManager } from './audio.js';
+import { keybindManager, ACTIONS } from './keybinds.js';
 
 /* ==================== 粒子系统 ==================== */
 class Particle {
@@ -604,6 +605,10 @@ export class GameEngine {
         this.difficulty = 'medium';
         this.modeHandler = null;
 
+        // 视觉状态
+        this.gunOffset = { x: 0, y: 0 };
+        this.shake = 0;
+
         // 帧计时
         this.lastTime = 0;
         this.animFrameId = null;
@@ -630,10 +635,16 @@ export class GameEngine {
         }
     }
 
-    async init(mode, difficulty, modeHandler) {
+    async init(mode, difficulty, modeHandler, options = {}) {
         this.mode = mode;
         this.difficulty = difficulty;
         this.modeHandler = modeHandler;
+        this.onComplete = options.onComplete;
+
+        // ...
+
+        // ... (lines 638-655 skipped in output, but I need to be careful with context)
+        // I will just replace the start of function and duration logic.
 
         // 重置
         this.score = 0;
@@ -653,7 +664,7 @@ export class GameEngine {
         this.particles.particles = [];
         this.floatingTexts = [];
 
-        this.duration = modeHandler.getDuration ? modeHandler.getDuration(difficulty) : 60;
+        this.duration = options.duration || (modeHandler.getDuration ? modeHandler.getDuration(difficulty) : 60);
 
         // 重新加载灵敏度和准星配置
         const config = loadSensitivity() || getDefaultConfig();
@@ -711,13 +722,14 @@ export class GameEngine {
     _onMouseDown(e) {
         if (this.state !== 'running') return;
 
-        // 右键开镜
-        if (e.button === 2) {
+        // ADS (Alt Fire / Scope)
+        if (keybindManager.isAction(ACTIONS.ADS, e)) {
             this.weapon.toggleScope();
             return;
         }
 
-        if (e.button !== 0) return;
+        // Fire
+        if (!keybindManager.isAction(ACTIONS.FIRE, e)) return;
         if (this.mode === 'tracking') return;
 
         // 尝试开火
@@ -729,6 +741,10 @@ export class GameEngine {
         // 播放射击音效
         audioManager.playShoot(this.weapon.type || 'rifle');
         this.shake += this.weapon.damage > 80 ? 5 : 2; // 根据伤害震动
+
+        // 视觉后坐力 (枪身动画)
+        this.gunOffset.y += 15;
+        this.gunOffset.x -= 5;
 
         this.totalClicks++;
         let hitAny = false;
@@ -797,11 +813,26 @@ export class GameEngine {
             if (this.modeHandler.onMiss) this.modeHandler.onMiss(this);
         }
 
-        // 记录射击历史 (归一化坐标，节省空间且适应窗口变化)
+        // 查找最近的目标用于数据分析
+        let nearestTarget = null;
+        let minDist = Infinity;
+        for (const t of this.targets) {
+            if (t.state !== 'active') continue;
+            const dist = (t.x - aimX) ** 2 + (t.y - aimY) ** 2;
+            if (dist < minDist) {
+                minDist = dist;
+                nearestTarget = t;
+            }
+        }
+
+        // 记录射击历史 (归一化坐标)
         this.shotHistory.push({
             x: aimX / this.canvas.width,
             y: aimY / this.canvas.height,
-            hit: hitAny
+            tx: nearestTarget ? nearestTarget.x / this.canvas.width : 0.5,
+            ty: nearestTarget ? nearestTarget.y / this.canvas.height : 0.5,
+            hit: hitAny,
+            t: performance.now()
         });
     }
 
@@ -816,24 +847,25 @@ export class GameEngine {
 
     _onKeyDown(e) {
         if (this.state !== 'running') return;
-        const key = e.key.toLowerCase();
 
-        if (key === 'r') this.weapon.reload();
+        if (keybindManager.isAction(ACTIONS.RELOAD, e)) {
+            this.weapon.reload();
+            return;
+        }
 
-        if (['1', '2', '3', '4'].includes(key)) {
-            let newWeapon = null;
-            if (key === '1') newWeapon = WEAPON_PRESETS.standard;
-            if (key === '2') newWeapon = WEAPON_PRESETS.vandal;
-            if (key === '3') newWeapon = WEAPON_PRESETS.sheriff;
-            if (key === '4') newWeapon = WEAPON_PRESETS.operator;
+        if (keybindManager.isAction(ACTIONS.WEAPON_1, e)) this._switchWeapon(WEAPON_PRESETS.standard);
+        if (keybindManager.isAction(ACTIONS.WEAPON_2, e)) this._switchWeapon(WEAPON_PRESETS.vandal);
+        if (keybindManager.isAction(ACTIONS.WEAPON_3, e)) this._switchWeapon(WEAPON_PRESETS.sheriff);
+        if (keybindManager.isAction(ACTIONS.WEAPON_4, e)) this._switchWeapon(WEAPON_PRESETS.operator);
+    }
 
-            if (newWeapon && this.weapon.name !== newWeapon.name) {
-                this.weapon = newWeapon;
-                this.weapon.currentAmmo = this.weapon.magazineSize;
-                this.weapon.currentRecoil = { x: 0, y: 0 };
-                this.weapon.isReloading = false;
-                this.addFloatingText(this.crosshair.x, this.crosshair.y - 100, `Switched to ${this.weapon.name}`, '#ffffff');
-            }
+    _switchWeapon(newWeapon) {
+        if (newWeapon && this.weapon.name !== newWeapon.name) {
+            this.weapon = newWeapon;
+            this.weapon.currentAmmo = this.weapon.magazineSize;
+            this.weapon.currentRecoil = { x: 0, y: 0 };
+            this.weapon.isReloading = false;
+            this.addFloatingText(this.crosshair.x, this.crosshair.y - 100, `Switched to ${this.weapon.name}`, '#ffffff');
         }
     }
 
@@ -907,8 +939,27 @@ export class GameEngine {
         this.crosshair.y += recoilOffset.y;
         this.crosshair.render(ctx);
 
+        this.crosshair.render(ctx);
+
         this.crosshair.x = originalX;
         this.crosshair.y = originalY;
+
+        // 渲染武器 (最上层)
+        const time = performance.now();
+        const sway = {
+            x: Math.sin(time * 0.002) * 0.5,
+            y: Math.cos(time * 0.004) * 0.5
+        };
+        // 简单的枪械回归逻辑 (Spring/Lerp)
+        this.gunOffset.x *= 0.85;
+        this.gunOffset.y *= 0.85;
+
+        this.weapon.render(this.ctx, w, h, {
+            time: time,
+            lastFireTime: this.weapon.lastFireTime,
+            gunOffset: this.gunOffset,
+            sway: sway
+        });
     }
 
     _renderGrid(ctx, w, h) {
@@ -987,10 +1038,14 @@ export class GameEngine {
         const previousBest = bestScores[this.mode];
         const isNewRecord = !previousBest || this.score >= previousBest.score;
 
-        showResult(result, isNewRecord,
-            () => { if (this.modeHandler) this.init(this.mode, this.difficulty, this.modeHandler); },
-            () => { window.app.showView('menu'); }
-        );
+        if (this.onComplete) {
+            this.onComplete(result, isNewRecord);
+        } else {
+            showResult(result, isNewRecord,
+                () => { if (this.modeHandler) this.init(this.mode, this.difficulty, this.modeHandler); },
+                () => { window.app.showView('menu'); }
+            );
+        }
     }
 
     destroy() {

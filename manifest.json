@@ -1,0 +1,23 @@
+{
+  "name": "TrainGun Aim Trainer",
+  "short_name": "TrainGun",
+  "description": "Open-source Aim Trainer running in your browser.",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "background_color": "#0a0a1a",
+  "theme_color": "#00fff0",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "images/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "images/icon.svg", 
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

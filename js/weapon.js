@@ -126,6 +126,116 @@ export class Weapon {
             y: this.currentRecoil.y
         };
     }
+
+    /**
+     * 渲染武器模型
+     * @param {CanvasRenderingContext2D} ctx 
+     * @param {number} w Canvas Width
+     * @param {number} h Canvas Height
+     * @param {Object} state { time, gunOffset: {x,y}, sway: {x,y} }
+     */
+    render(ctx, w, h, state) {
+        if (this.isScoped && this.scopeProgress > 0.8) return; // 开镜时不渲染枪模
+
+        ctx.save();
+
+        // 基础位置 (右下角)
+        const baseX = w * 0.75; // 75% 宽度处
+        const baseY = h * 0.95; // 底部
+
+        // 应用偏移 (后坐力 + 呼吸摆动 + 换弹)
+        let dx = state.gunOffset.x + state.sway.x * 20;
+        let dy = state.gunOffset.y + state.sway.y * 10;
+        let rot = state.gunOffset.y * 0.005 + state.sway.x * 0.05; // 简单的旋转
+
+        // 换弹动画 (下潜)
+        if (this.isReloading) {
+            dy += 200;
+            rot += 0.5;
+        }
+
+        ctx.translate(baseX + dx, baseY + dy);
+        ctx.rotate(rot);
+
+        // 绘制通用枪械几何体
+        this._drawGunModel(ctx);
+
+        // 枪口火焰
+        if (state.lastFireTime && state.time - state.lastFireTime < 50) {
+            this._drawMuzzleFlash(ctx);
+        }
+
+        ctx.restore();
+    }
+
+    _drawGunModel(ctx) {
+        ctx.fillStyle = '#1a1a2e'; // 枪身深色
+        ctx.strokeStyle = '#00fff0'; // 霓虹边框
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(0, 255, 240, 0.2)';
+
+        ctx.beginPath();
+        if (this.type === 'pistol') {
+            // 手枪短小
+            ctx.moveTo(0, 0);
+            ctx.lineTo(200, -50);
+            ctx.lineTo(200, -120);
+            ctx.lineTo(-50, -120);
+            ctx.lineTo(-100, 0);
+        } else if (this.type === 'sniper') {
+            // 狙击枪细长
+            ctx.moveTo(0, 0);
+            ctx.lineTo(500, -80); // 枪管长
+            ctx.lineTo(500, -130);
+            ctx.lineTo(100, -150); // 瞄准镜位置高
+            ctx.lineTo(-50, -100);
+            ctx.lineTo(-150, 0);
+        } else {
+            // 步枪标准
+            ctx.moveTo(0, 0);
+            ctx.lineTo(400, -60);
+            ctx.lineTo(400, -110);
+            ctx.lineTo(-50, -110);
+            ctx.lineTo(-150, 0);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // 细节纹理
+        ctx.fillStyle = '#2a2a4e';
+        ctx.fillRect(50, -80, 100, 10); // 导轨
+
+        // 能量槽 (显示弹药状态)
+        const ammoRatio = this.currentAmmo / this.magazineSize;
+        ctx.fillStyle = ammoRatio > 0.3 ? '#00fff0' : '#ff3366';
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 15;
+        ctx.fillRect(-20, -50, 10 * Math.max(0, ammoRatio * 10), 5);
+        ctx.shadowBlur = 0;
+    }
+
+    _drawMuzzleFlash(ctx) {
+        // 枪口位置估计
+        let tipX = 400, tipY = -85;
+        if (this.type === 'pistol') { tipX = 200; tipY = -85; }
+        if (this.type === 'sniper') { tipX = 500; tipY = -105; }
+
+        ctx.translate(tipX, tipY);
+
+        ctx.fillStyle = '#ffffaa';
+        ctx.shadowColor = '#ffaa00';
+        ctx.shadowBlur = 40;
+
+        ctx.beginPath();
+        const size = Math.random() * 50 + 50;
+        for (let i = 0; i < 5; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            ctx.lineTo(Math.cos(angle) * size, Math.sin(angle) * size);
+        }
+        ctx.fill();
+    }
 }
 
 /* ==================== 武器预设 ==================== */
